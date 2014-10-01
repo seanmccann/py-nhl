@@ -52,9 +52,9 @@ def getgamelist(**kwargs):
         gamelisturl = 'http://www.nhl.com/ice/ajax/GCScoreboardJS?today=%s' % date.strftime("%m/%d/%Y")
         try:
             gamelistraw = fetchurl(gamelisturl)
-        
+
             if (len(gamelistraw) == 0): return []
-        
+
             # HACK ALERT substring out the call to the javascript method loadScoreboard() to get raw JSON
             gamelistraw = gamelistraw[15:-1]
             gamelist = json.loads(gamelistraw)['games']
@@ -116,11 +116,11 @@ def processevent(game_id, event, conn):
         'time',
         'goalie_id'
     ]
-    
+
     goalie_id = event['g_goalieID'] if 'g_goalieID' in event and event['g_goalieID'] <> '' else None
     if goalie_id is None and 'pid2' in event and len(str(event['pid2'])) > 0:
         goalie_id = event['pid2']
-    
+
     values = [
         event_id,
         event['formalEventId'],
@@ -143,7 +143,7 @@ def processevent(game_id, event, conn):
         event['time'],
         goalie_id
     ]
-    
+
     sql = 'INSERT INTO events (%s) VALUES(%s)' % (','.join(headers), ','.join(['%s'] * len(values)))
     conn.execute(sql, values)
 
@@ -170,9 +170,9 @@ def processevent(game_id, event, conn):
 
 # Processes a game
 def processgame(season, game, gameinfo, conn):
-    
+
     game_id = gameinfo['id']
-    
+
     # Clear out data
     query = 'DELETE FROM events_players WHERE game_id = %s'
     conn.execute(query, [game_id])
@@ -185,7 +185,7 @@ def processgame(season, game, gameinfo, conn):
 
     query = 'DELETE FROM games WHERE game_id = %s'
     conn.execute(query, [game_id])
-    
+
     query = 'SELECT * FROM teams WHERE team_id = %s'
     result = conn.execute(query, [game['awayteamid']])
     if result.rowcount == 0:
@@ -216,6 +216,12 @@ def processgame(season, game, gameinfo, conn):
     conn.execute(query, values)
 
     for event in game['plays']['play']:
+        if 'xcoord' not in event:
+            event['xcoord'] = None;
+
+        if 'ycoord' not in event:
+            event['ycoord'] = None;
+
         processevent(game_id, event, conn)
 
 
@@ -238,7 +244,7 @@ def main():
         print 'Need to define engine, user, password, host, and database parameters'
         raise SystemExit
 
-    if USER and PASSWORD: string = '%s://%s:%s@%s/%s' % (ENGINE, USER, PASSWORD, HOST, DATABASE)
+    if USER: string = '%s://%s@%s/%s' % (ENGINE, USER, HOST, DATABASE)
     else:  string = '%s://%s/%s' % (ENGINE, HOST, DATABASE)
 
     try:
@@ -268,7 +274,7 @@ def main():
         elif o in ('-s', '--season'): SEASON = int(a)
 
     if SEASON is False: usage()
-    
+
     if YEAR:
         gameargs['year'] = YEAR
         if MONTH:
@@ -283,7 +289,7 @@ def main():
     for game in gamelist:
         game_id = game['id']
         fetchedgame = getgame(game_id, SEASON)
-        
+
         if fetchedgame is None: continue
         processgame(SEASON, fetchedgame, game, conn)
 

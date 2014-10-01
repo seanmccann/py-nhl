@@ -9,6 +9,8 @@ drop table if exists nhl.events_penaltybox;
 drop table if exists nhl.players cascade;
 drop table if exists nhl.stats_skaters_summary;
 drop table if exists nhl.stats_skaters_timeonice;
+drop table if exists nhl.stats_skaters_faceoff;
+drop table if exists nhl.stats_goalies_summary;
 
 /* USED BY events.py */
 
